@@ -134,7 +134,8 @@ async def get_status(application_id: str):
         "completed_agents": workflow["completed_agents"],
         "failed_agents": workflow["failed_agents"],
         "decision": workflow["context"].get("DecisionAgent", {}).get("decision"),
-        "context": workflow["context"]
+        "context": workflow["context"],
+        "system_logs": workflow.get("system_logs", [])
     }
 
 @app.post("/api/kyc/{application_id}/review")

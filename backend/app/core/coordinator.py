@@ -13,6 +13,12 @@ class CoordinatorAgent:
         # In a real app, this goes to DB/Redis.
         self.active_workflows: Dict[str, Dict[str, Any]] = {}
 
+    def _add_log(self, app_id: str, msg: str):
+        if app_id in self.active_workflows:
+            import datetime
+            ts = datetime.datetime.now().strftime("%H:%M:%S")
+            self.active_workflows[app_id].setdefault("system_logs", []).append(f"[{ts}] {msg}")
+
     async def initialize(self):
         event_bus.subscribe(EventType.APPLICATION_SUBMITTED, self._handle_application_submitted)
         event_bus.subscribe(EventType.TASK_COMPLETED, self._handle_task_completed)
@@ -27,8 +33,10 @@ class CoordinatorAgent:
             "status": "IN_PROGRESS",
             "completed_agents": [],
             "failed_agents": [],
-            "context": event.payload
+            "context": event.payload,
+            "system_logs": []
         }
+        self._add_log(app_id, f"Started workflow for application {app_id}")
         
         # Determine the execution plan (e.g., run DocumentAgent first)
         await asyncio.gather(
@@ -49,6 +57,7 @@ class CoordinatorAgent:
 
         workflow = self.active_workflows[app_id]
         workflow["completed_agents"].append(agent_name)
+        self._add_log(app_id, f"Agent {agent_name} completed task.")
         
         # Merge result into context
         workflow["context"].update({agent_name: result})
@@ -57,6 +66,7 @@ class CoordinatorAgent:
         if agent_name in ["DocumentAgent", "SelfieAgent"]:
             if result.get("status") == "REJECTED":
                 logger.warning(f"[Coordinator] {agent_name} rejected. Pausing workflow.")
+                self._add_log(app_id, f"Workflow paused: {agent_name} rejected.")
                 workflow["status"] = "PAUSED_AWAITING_USER"
                 await event_bus.publish(Event(
                     type=EventType.WORKFLOW_PAUSED,
@@ -75,6 +85,7 @@ class CoordinatorAgent:
         elif agent_name == "FaceMatchAgent":
             if result.get("status") == "MISMATCH":
                 logger.warning(f"[Coordinator] Face match failed. Pausing workflow.")
+                self._add_log(app_id, f"Workflow paused: Face match failed.")
                 workflow["status"] = "PAUSED_AWAITING_USER"
                 await event_bus.publish(Event(
                     type=EventType.WORKFLOW_PAUSED,
@@ -119,6 +130,7 @@ class CoordinatorAgent:
             
         elif agent_name == "DecisionAgent":
             workflow["status"] = "COMPLETED"
+            self._add_log(app_id, f"Workflow completed. Final decision: {result.get('decision')}")
             logger.info(f"[Coordinator] Workflow completed for app {app_id}. Final decision: {result.get('decision')}")
             await event_bus.publish(Event(
                 type=EventType.WORKFLOW_COMPLETED,
@@ -132,6 +144,7 @@ class CoordinatorAgent:
         agent_name = event.payload.get("agent")
         error = event.payload.get("error")
         logger.error(f"[Coordinator] Agent {agent_name} failed for app {app_id}: {error}")
+        self._add_log(app_id, f"Agent {agent_name} failed: {error}")
         
         if app_id in self.active_workflows:
             self.active_workflows[app_id]["failed_agents"].append(agent_name)
@@ -139,6 +152,7 @@ class CoordinatorAgent:
 
     async def _dispatch_task(self, application_id: str, target_agent: str, task_data: Dict[str, Any]):
         logger.info(f"[Coordinator] Dispatching task to {target_agent} for app {application_id}")
+        self._add_log(application_id, f"Dispatching task to {target_agent}...")
         
         # Add workflow context to task_data
         context = self.active_workflows.get(application_id, {}).get("context", {})
