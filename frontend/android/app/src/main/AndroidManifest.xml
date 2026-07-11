@@ -5,9 +5,10 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <application
-        android:label="frontend"
+        android:label="KYCFlow"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"

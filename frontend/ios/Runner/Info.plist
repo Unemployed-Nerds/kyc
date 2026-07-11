@@ -5,7 +5,16 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Frontend</string>
+	<string>KYCFlow</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera is used to photograph your ID document and take a live selfie for identity verification.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo access lets you upload an existing photo of your ID document.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

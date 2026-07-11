@@ -15,7 +15,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Scope the Python lib/ ignore to the venv, or it swallows frontend/lib/
+backend/venv/lib/
 lib64/
 parts/
 sdist/
